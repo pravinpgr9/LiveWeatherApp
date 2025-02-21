@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Weather & AQI Dashboard</title>
+    
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- GSAP Animation Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
+    <!-- Axios for API Requests -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <style>
+        /* Sexy Background Animation */
+        body {
+            background: linear-gradient(-45deg, #1e3c72, #2a5298, #ff5733, #ffcc00);
+            background-size: 400% 400%;
+            animation: bgAnimate 10s infinite alternate ease-in-out;
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            overflow: hidden;
+        }
+        @keyframes bgAnimate {
+            0% { background-position: left; }
+            100% { background-position: right; }
+        }
+        
+        /* Weather Card (Glassmorphism Effect) */
+        .weather-card {
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            transform: scale(0.8);
+            margin-top: 30px;
+        }
+        
+        /* Loading Animation */
+        .loader {
+            display: none;
+            border: 6px solid rgba(255, 255, 255, 0.3);
+            border-top: 6px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 0.8s linear infinite;
+            margin: auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Input Box */
+        .input-group {
+            max-width: 400px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container mt-5">
+        <h2 class="mb-4" id="title">🌍 Real-Time Weather & Air Quality</h2>
+
+        <!-- Search Box -->
+        <div class="input-group mb-4" id="searchBox">
+            <input type="text" id="locationInput" class="form-control" placeholder="Enter City Name (or auto-detect)">
+            <button class="btn btn-light" onclick="fetchWeatherByCity()">🔍 Search</button>
+        </div>
+
+        <!-- Loader -->
+        <div class="loader" id="loader"></div>
+
+        <!-- Weather Display Card -->
+        <div class="weather-card p-4 mx-auto" id="weatherCard">
+            <h4 id="cityName">📍 Location: <span></span></h4>
+            <h5>🌡 Temperature: <span id="temperature"></span></h5>
+            <p>⛅ Condition: <span id="condition"></span></p>
+            <p>💨 Air Quality: <span id="airQuality"></span></p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="alert alert-danger mt-3 d-none" id="errorMessage"></div>
+    </div>
+
+    <script>
+        // GSAP Animations on Load
+        gsap.from("#title", { opacity: 0, y: -50, duration: 1, ease: "bounce" });
+        gsap.from("#searchBox", { opacity: 0, scale: 0.5, duration: 1.2, ease: "elastic.out(1, 0.5)", delay: 0.5 });
+
+        async function fetchWeatherByCity() {
+            const city = document.getElementById("locationInput").value.trim();
+            if (!city) {
+                return getUserLocation(); // Auto-detect location
+            }
+
+            showLoader();
+
+            try {
+                const geoRes = await axios.get(`https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=1&appid=84361f908a2b0d3d95e11ad32c962ce1`);
+                if (geoRes.data.length === 0) throw new Error("City not found");
+
+                const { lat, lon, name } = geoRes.data[0];
+                fetchWeather(lat, lon, name);
+            } catch (error) {
+                showError("City not found. Please try again.");
+            }
+        }
+
+        function getUserLocation() {
+            if (navigator.geolocation) {
+                showLoader();
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        fetchWeather(position.coords.latitude, position.coords.longitude, "Your Location");
+                    },
+                    () => {
+                        showError("Failed to get your location. Please enter city manually.");
+                    }
+                );
+            } else {
+                showError("Geolocation is not supported by your browser.");
+            }
+        }
+
+        async function fetchWeather(lat, lon, locationName) {
+            try {
+                const response = await axios.get(`https://inquisitive-shortbread-a8a987.netlify.app/.netlify/functions/weather`, {
+                    params: { lat, lon }
+                });
+
+                const data = response.data;
+                document.getElementById("cityName").textContent = `📍 ${locationName}`;
+                document.getElementById("temperature").textContent = data.temperature;
+                document.getElementById("condition").textContent = data.condition;
+                document.getElementById("airQuality").textContent = data.air_quality;
+
+                document.getElementById("weatherCard").style.display = "block";
+                animateWeatherCard();
+                hideLoader();
+            } catch (error) {
+                showError("Failed to fetch weather data. Please try again.");
+            }
+        }
+
+        function showLoader() {
+            document.getElementById("loader").style.display = "block";
+            document.getElementById("weatherCard").style.display = "none";
+            document.getElementById("errorMessage").classList.add("d-none");
+        }
+
+        function hideLoader() {
+            document.getElementById("loader").style.display = "none";
+        }
+
+        function showError(message) {
+            hideLoader();
+            document.getElementById("errorMessage").textContent = message;
+            document.getElementById("errorMessage").classList.remove("d-none");
+            document.getElementById("weatherCard").style.display = "none";
+        }
+
+        function animateWeatherCard() {
+            gsap.fromTo("#weatherCard", 
+                { opacity: 0, scale: 0.8 }, 
+                { opacity: 1, scale: 1, duration: 1.5, ease: "power3.out" }
+            );
+        }
+
+        // Auto-fetch weather on page load
+        window.onload = getUserLocation;
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,52 @@
+# Local Netlify folder
+.netlify
+
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn.lock
+pnpm-lock.yaml
+
+# Logs
+logs/
+*.log
+*.log.*
+*.out
+*.err
+
+# Dependency directories
+vendor/
+composer.lock
+
+# Laravel & PHP
+.env
+.env.*
+/storage/
+bootstrap/cache/
+
+# Vue.js & React
+dist/
+build/
+.vite/
+.vite-cache/
+
+# Next.js
+.next/
+out/
+
+# Prisma
+prisma/migrations/
+
+# IDE files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+.DS_Store
+Thumbs.db
